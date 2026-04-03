@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CallType {
+  ROBOCALL
+  LIVE_TELEMARKETER
+  TEXT_MESSAGE
+  FAX
+}
+
+enum CallStatus {
+  LOGGED
+  COMPLAINT_FILED
+  CLAIM_FILED
+  RESOLVED
+}
+
+enum Agency {
+  FTC
+  FCC
+}
+
+enum ClaimStatus {
+  PREPARING
+  FILED
+  HEARING_SCHEDULED
+  RESOLVED
+}
+
+model User {
+  id                  String      @id @default(uuid())
+  email               String      @unique
+  passwordHash        String
+  phoneNumber         String?
+  dncRegistered       Boolean     @default(false)
+  dncRegistrationDate DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  calls               Call[]
+  complaints          Complaint[]
+  claims              Claim[]
+}
+
+model Call {
+  id                   String     @id @default(uuid())
+  userId               String
+  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  callerNumber         String
+  callerName           String?
+  callerCompany        String?
+  callerID             String?
+  callType             CallType   @default(ROBOCALL)
+  date                 DateTime
+  time                 String?
+  state                String?
+  registeredOnDNC      String     @default("yes")
+  consentGiven         String     @default("no")
+  existingRelationship String     @default("no")
+  notes                String?
+  status               CallStatus @default(LOGGED)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  complaints           Complaint[]
+  claims               Claim[]
+}
+
+model Complaint {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  callId             String
+  call               Call     @relation(fields: [callId], references: [id], onDelete: Cascade)
+  agency             Agency
+  confirmationNumber String?
+  notes              String?
+  filedAt            DateTime @default(now())
+}
+
+model Claim {
+  id                String      @id @default(uuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  callId            String
+  call              Call        @relation(fields: [callId], references: [id], onDelete: Cascade)
+  claimAmount       Float?
+  courtName         String?
+  filingDate        DateTime?
+  caseNumber        String?
+  status            ClaimStatus @default(PREPARING)
+  evidenceChecklist Json?
+  notes             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
